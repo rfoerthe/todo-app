@@ -1,0 +1,10 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Create doc directory",
+			"type": "shell",
+			"command": "mkdir -p /Users/rfoerthe/work/exp/tst/my-app/doc"
+		}
+	]
+}

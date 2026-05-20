@@ -1,6 +1,6 @@
 # PowerBoard Documentation
 
-This documentation describes PowerBoard, the current full-stack ToDo/Kanban application: a Vite/React frontend, a Bun API/static server, embedded SQLite persistence, helper scripts for local process management, and optional Electron packaging for macOS.
+This documentation describes PowerBoard, the current full-stack ToDo/Kanban application: a Vite/React frontend, a Bun API/static server, embedded SQLite persistence, helper scripts for local process management, and optional Electron packaging for macOS. The UI supports multi-board Kanban workflows with archived boards/todos, checklist items, activity notes/history, persisted language/theme preferences, and modal dialogs for task creation and activity review.
 
 ## Quick Start
 

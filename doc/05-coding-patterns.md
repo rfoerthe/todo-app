@@ -16,7 +16,7 @@ export function App() {
 
 `TodoApp` uses:
 
-- `useState` for UI state, form state, saving/error flags, and editing state
+- `useState` for UI state, form state, saving/error flags, editing state, and dialog visibility
 - `useMemo` for derived dashboard counts, filtered todos, tags, and grouped lanes
 - `useCallback` for list/todo loading functions
 - `useEffect` for initial loading, keyboard shortcuts, theme application, and localStorage persistence
@@ -77,6 +77,8 @@ Activity log writes should go through:
 logActivity(listId, todoId, action, detail);
 ```
 
+Activity entries are ordered newest-first by `created_at DESC, id DESC` and exposed to the frontend as `createdAt`. Format these timestamps in the UI layer so language-specific display remains a frontend concern.
+
 ## Archive Rules
 
 The current domain rules are enforced server-side:
@@ -112,6 +114,8 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
 Tailwind CSS v4 is imported from `styles/globals.css`, with app-level additions in `src/index.css`.
 
 The app supports light, dark, and system themes. `TodoApp` toggles the `dark` class on `document.documentElement` and sets `colorScheme` to match. Use existing slate/neutral surface styles and lane-specific color accents when adding UI.
+
+Keep task cards compact. Use icon buttons for secondary card actions, and keep larger histories or forms in modal dialogs when inline content would make cards hard to scan. Checklist labels may be visually truncated, but preserve full text through a native `title` tooltip when the visible label can overflow.
 
 ## TypeScript Patterns
 

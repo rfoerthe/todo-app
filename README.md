@@ -8,7 +8,8 @@ PowerBoard is a local ToDo/Kanban application for managing multiple boards. The 
 - Task lanes: `new`, `in_progress`, and `done`
 - Drag-and-drop status changes plus keyboard-friendly move buttons
 - Due dates, priorities, story points, tags, search, filters, and sorting
-- Inline task editing with descriptions, subtasks, and activity notes
+- Inline task editing with descriptions, subtasks, checklist tooltips, and activity notes
+- Activity history in a modal dialog with per-entry date/time stamps
 - Task and list archiving with one-step undo/restore
 - Dashboard counters for open, due today, overdue, and urgent tasks
 - German/English language and light/dark/system theme preferences restored across macOS app restarts

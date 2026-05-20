@@ -33,7 +33,7 @@ Packaged macOS app
 |---|---|
 | `src/frontend.tsx` | React entrypoint and StrictMode render |
 | `src/App.tsx` | Root component that mounts `TodoApp` |
-| `src/TodoApp.tsx` | Board UI, filters, editing, archive views, theme selection, API calls |
+| `src/TodoApp.tsx` | Board UI, filters, editing, archive views, activity dialog, theme selection, API calls |
 | `src/index.ts` | Bun server, SQLite schema/migrations, API routes, static file serving |
 | `electron/main.cjs` | Desktop shell, local API process lifecycle, BrowserWindow setup |
 | `scripts/build-macos-dmg.mjs` | macOS packaging pipeline |
@@ -46,7 +46,7 @@ Packaged macOS app
 | `todo_lists` | Kanban boards with optional `archived_at` timestamp |
 | `todos` | Cards belonging to one list |
 | `subtasks` | Checklist items belonging to one todo |
-| `todo_activity` | Activity and note log entries for lists/todos |
+| `todo_activity` | Timestamped activity and note log entries for lists/todos |
 
 Each todo has one of three statuses:
 
@@ -62,6 +62,14 @@ Each todo has one of four priorities:
 - `urgent`
 
 Story points are restricted to `0, 1, 2, 3, 5, 8, 13, 21, 40`. Due dates are stored as `YYYY-MM-DD` strings. Tags are stored as a JSON array in SQLite and normalized on read/write.
+
+Activity rows use SQLite `CURRENT_TIMESTAMP` and are returned as `createdAt`; the frontend formats them for the selected language when rendering the activity dialog.
+
+## UI Behavior
+
+Todo cards show the main task details, tags, due date, checklist progress, subtasks, and compact action buttons. Long checklist item labels remain truncated in the card layout, but the full label is exposed through the native browser tooltip on hover.
+
+The activity history is not rendered inline in each card. Instead, each card shows a left-aligned icon button with an activity count badge. Activating it opens a modal dialog with the todo title, all activity entries, localized date/time stamps, and the note-entry form when the todo/list is editable. `Escape` and the close icon dismiss the dialog.
 
 ## API Routes
 
@@ -121,7 +129,7 @@ Non-API requests fall back to `dist/index.html`, which keeps SPA navigation work
 
 ## Frontend State
 
-`TodoApp` keeps board, task, filter, editing, archive, and saving state in React hooks. It persists UI preferences through the API-backed SQLite database so the packaged macOS app can restore them even though Electron starts the local server on a new port:
+`TodoApp` keeps board, task, filter, editing, archive, dialog, and saving state in React hooks. It persists UI preferences through the API-backed SQLite database so the packaged macOS app can restore them even though Electron starts the local server on a new port:
 
 - `language`: `de` or `en`
 - `themeMode`: `light`, `dark`, or `system`

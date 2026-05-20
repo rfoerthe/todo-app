@@ -15,6 +15,7 @@ import {
   Clock3,
   Edit3,
   Filter,
+  History,
   Inbox,
   ListTodo,
   Minus,
@@ -375,6 +376,22 @@ function shortDate(value: string, language: Language, noDateLabel: string) {
   return new Intl.DateTimeFormat(language === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "2-digit" }).format(
     new Date(`${value}T12:00:00`),
   );
+}
+
+function activityDateTime(value: string, language: Language) {
+  const date = new Date(value.includes("T") ? value : `${value.replace(" ", "T")}Z`);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(language === "de" ? "de-DE" : "en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 function isThemeMode(value: string | null): value is ThemeMode {
@@ -1633,6 +1650,7 @@ function TodoCard({
   const [tagsValue, setTagsValue] = useState(todo.tags.join(", "));
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [note, setNote] = useState("");
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [moveTargetListId, setMoveTargetListId] = useState("");
   const doneSubtasks = todo.subtasks.filter(subtask => subtask.done).length;
   const isArchivedTodo = Boolean(todo.archivedAt);
@@ -1652,6 +1670,22 @@ function TodoCard({
       setTagsValue(todo.tags.join(", "));
     }
   }, [editing, todo.description, todo.dueAt, todo.priority, todo.storyPoints, todo.tags, todo.title]);
+
+  useEffect(() => {
+    if (!activityDialogOpen) {
+      return;
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setActivityDialogOpen(false);
+      }
+    }
+
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [activityDialogOpen]);
 
   function submitEdit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -1693,17 +1727,18 @@ function TodoCard({
   }
 
   return (
-    <Card
-      draggable={!readOnly}
-      onDragStart={onDragStart}
-      className={cn(
-        "gap-3 rounded-md border-white/80 bg-white/95 py-4 shadow-xs dark:border-slate-700 dark:bg-slate-900/95",
-        isArchivedTodo &&
-          "border-amber-300 bg-amber-50/95 shadow-sm ring-1 ring-amber-200/70 dark:border-amber-500/60 dark:bg-amber-950/35 dark:ring-amber-400/20",
-        !readOnly && "cursor-grab active:cursor-grabbing",
-      )}
-    >
-      <CardContent className="flex flex-col gap-3 px-4">
+    <>
+      <Card
+        draggable={!readOnly}
+        onDragStart={onDragStart}
+        className={cn(
+          "gap-3 rounded-md border-white/80 bg-white/95 py-4 shadow-xs dark:border-slate-700 dark:bg-slate-900/95",
+          isArchivedTodo &&
+            "border-amber-300 bg-amber-50/95 shadow-sm ring-1 ring-amber-200/70 dark:border-amber-500/60 dark:bg-amber-950/35 dark:ring-amber-400/20",
+          !readOnly && "cursor-grab active:cursor-grabbing",
+        )}
+      >
+        <CardContent className="flex flex-col gap-3 px-4">
         {editing ? (
           <form onSubmit={submitEdit} className="flex flex-col gap-3">
             <Input value={title} onChange={event => setTitle(event.target.value)} />
@@ -1812,7 +1847,9 @@ function TodoCard({
                         onChange={event => onPatchSubtask(subtask.id, event.target.checked)}
                         disabled={saving || readOnly}
                       />
-                      <span className={cn("truncate", subtask.done && "text-slate-400 line-through dark:text-slate-500")}>{subtask.title}</span>
+                      <span className={cn("truncate", subtask.done && "text-slate-400 line-through dark:text-slate-500")} title={subtask.title}>
+                        {subtask.title}
+                      </span>
                     </span>
                     <button
                       type="button"
@@ -1841,25 +1878,23 @@ function TodoCard({
               ) : null}
             </div>
 
-            <div className="rounded-md border border-slate-100 bg-white p-2 dark:border-slate-800 dark:bg-slate-950/30">
-              <div className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">{t.activity}</div>
-              <div className="activity-scroll flex max-h-[3.75rem] flex-col gap-1 overflow-y-scroll pr-2">
-                {todo.activity.length === 0 ? <p className="text-xs text-slate-400 dark:text-slate-500">{t.noEntries}</p> : null}
-                {todo.activity.map(item => (
-                  <p key={item.id} className="text-xs text-slate-500 dark:text-slate-400">
-                    <span className="font-medium text-slate-700 dark:text-slate-200">{actionLabels[item.action] ?? item.action}</span>
-                    {item.detail ? `: ${item.detail}` : ""}
-                  </p>
-                ))}
-              </div>
-              {!readOnly ? (
-                <form onSubmit={submitNote} className="mt-2 flex gap-2">
-                  <Input value={note} onChange={event => setNote(event.target.value)} placeholder={t.note} className="h-8" />
-                  <Button type="submit" size="icon-sm" variant="outline" disabled={saving || !note.trim()}>
-                    <Plus />
-                  </Button>
-                </form>
-              ) : null}
+            <div className="flex justify-start">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                onClick={() => setActivityDialogOpen(true)}
+                className="relative"
+                aria-label={t.activity}
+                title={t.activity}
+              >
+                <History />
+                {todo.activity.length > 0 ? (
+                  <span className="absolute -top-1 -right-1 flex min-w-4 items-center justify-center rounded-full bg-slate-950 px-1 text-[0.625rem] leading-4 font-semibold text-white dark:bg-slate-50 dark:text-slate-950">
+                    {todo.activity.length}
+                  </span>
+                ) : null}
+              </Button>
             </div>
           </>
         )}
@@ -1965,7 +2000,59 @@ function TodoCard({
             ) : null}
           </div>
         </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      {activityDialogOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`todo-${todo.id}-activity-title`}
+            className="flex max-h-[min(34rem,calc(100vh-2rem))] w-full max-w-lg flex-col rounded-md border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950"
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+              <div className="min-w-0">
+                <h2 id={`todo-${todo.id}-activity-title`} className="truncate text-base font-semibold text-slate-950 dark:text-slate-50">
+                  {t.activity}
+                </h2>
+                <p className="truncate text-xs text-slate-500 dark:text-slate-400">{todo.title}</p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setActivityDialogOpen(false)}
+                aria-label={t.closeDialog}
+                title={t.closeDialog}
+              >
+                <X />
+              </Button>
+            </div>
+            <div className="activity-scroll flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 py-3">
+              {todo.activity.length === 0 ? <p className="text-sm text-slate-400 dark:text-slate-500">{t.noEntries}</p> : null}
+              {todo.activity.map(item => (
+                <div key={item.id} className="rounded-md border border-slate-100 bg-slate-50/80 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/70">
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{actionLabels[item.action] ?? item.action}</span>
+                    <time dateTime={item.createdAt} className="text-xs text-slate-500 dark:text-slate-400">
+                      {activityDateTime(item.createdAt, language)}
+                    </time>
+                  </div>
+                  {item.detail ? <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{item.detail}</p> : null}
+                </div>
+              ))}
+            </div>
+            {!readOnly ? (
+              <form onSubmit={submitNote} className="flex gap-2 border-t border-slate-100 p-4 dark:border-slate-800">
+                <Input value={note} onChange={event => setNote(event.target.value)} placeholder={t.note} className="h-9" />
+                <Button type="submit" size="icon-sm" variant="outline" disabled={saving || !note.trim()} aria-label={t.save} title={t.save}>
+                  <Plus />
+                </Button>
+              </form>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

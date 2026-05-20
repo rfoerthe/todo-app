@@ -76,6 +76,8 @@ Story points are restricted to `0, 1, 2, 3, 5, 8, 13, 21, 40`. Due dates are sto
 | `/api/lists/:id/todos?archived=1` | `GET` | List archived todos for a board |
 | `/api/lists/:id/todos?archived=all` | `GET` | List active and archived todos for a board |
 | `/api/lists/:id/todos` | `POST` | Create a todo |
+| `/api/preferences` | `GET` | Read persisted UI preferences |
+| `/api/preferences` | `PATCH` | Update persisted language/theme preferences |
 | `/api/todos/:id` | `PATCH` | Update todo fields, move to another list, archive, or restore |
 | `/api/todos/:id` | `DELETE` | Archive a completed todo |
 | `/api/todos/:id/subtasks` | `POST` | Add a subtask |
@@ -119,9 +121,11 @@ Non-API requests fall back to `dist/index.html`, which keeps SPA navigation work
 
 ## Frontend State
 
-`TodoApp` keeps board, task, filter, editing, archive, and saving state in React hooks. It persists these UI preferences in `localStorage`:
+`TodoApp` keeps board, task, filter, editing, archive, and saving state in React hooks. It persists UI preferences through the API-backed SQLite database so the packaged macOS app can restore them even though Electron starts the local server on a new port:
 
-- `todo-theme`: `light`, `dark`, or `system`
-- `todo-archive-lists-expanded`: whether the archived list section is expanded
+- `language`: `de` or `en`
+- `themeMode`: `light`, `dark`, or `system`
+
+The archived list expansion state remains in `localStorage` because it is a local view detail rather than an app-wide preference.
 
 The UI loads active and archived lists in parallel, then loads todos for the selected list. Mutating operations reload the selected board and list counts after the API call completes.

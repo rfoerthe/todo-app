@@ -48,7 +48,15 @@ db.run(`
     FOREIGN KEY (list_id) REFERENCES todo_lists(id) ON DELETE CASCADE,
     FOREIGN KEY (todo_id) REFERENCES todos(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS app_preferences (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    language TEXT NOT NULL DEFAULT 'de' CHECK (language IN ('de', 'en')),
+    theme_mode TEXT NOT NULL DEFAULT 'system' CHECK (theme_mode IN ('light', 'dark', 'system'))
+  );
 `);
+
+db.query("INSERT OR IGNORE INTO app_preferences (id) VALUES (1)").run();
 
 function ensureColumn(table: string, column: string, definition: string) {
   const columns = db.query<{ name: string }, []>(`PRAGMA table_info(${table})`).all();
@@ -88,11 +96,15 @@ if (!listCount?.count) {
 
 type TodoStatus = "new" | "in_progress" | "done";
 type Priority = "low" | "medium" | "high" | "urgent";
+type ThemeMode = "light" | "dark" | "system";
+type Language = "de" | "en";
 type RequestBody = Record<string, unknown>;
 
 const statuses = new Set<TodoStatus>(["new", "in_progress", "done"]);
 const priorities = new Set<Priority>(["low", "medium", "high", "urgent"]);
 const storyPointValues = new Set([0, 1, 2, 3, 5, 8, 13, 21, 40]);
+const themeModes = new Set<ThemeMode>(["light", "dark", "system"]);
+const languages = new Set<Language>(["de", "en"]);
 
 function json(data: unknown, status = 200) {
   return Response.json(data, { status });
@@ -162,6 +174,22 @@ function parseStoryPoints(value: unknown) {
   return points;
 }
 
+function parseThemeMode(value: unknown) {
+  if (typeof value !== "string" || !themeModes.has(value as ThemeMode)) {
+    throw new Error("themeMode must be one of light, dark, system");
+  }
+
+  return value as ThemeMode;
+}
+
+function parseLanguage(value: unknown) {
+  if (typeof value !== "string" || !languages.has(value as Language)) {
+    throw new Error("language must be one of de, en");
+  }
+
+  return value as Language;
+}
+
 function parseTags(value: unknown) {
   if (!Array.isArray(value)) {
     return [];
@@ -205,6 +233,20 @@ function getLists(includeArchived = false) {
       `,
     )
     .all();
+}
+
+function getPreferences() {
+  return db
+    .query<{ language: Language; themeMode: ThemeMode }, []>(
+      `
+        SELECT
+          language,
+          theme_mode AS themeMode
+        FROM app_preferences
+        WHERE id = 1
+      `,
+    )
+    .get();
 }
 
 function getSubtasks(todoId: number) {
@@ -349,6 +391,21 @@ async function handleApi(req: Request) {
   const subtaskMatch = url.pathname.match(/^\/api\/subtasks\/(\d+)$/);
 
   try {
+    if (url.pathname === "/api/preferences" && req.method === "GET") {
+      return json(getPreferences());
+    }
+
+    if (url.pathname === "/api/preferences" && req.method === "PATCH") {
+      const body = await readJson(req);
+      const current = getPreferences() ?? { language: "de" as const, themeMode: "system" as const };
+      const language = body.language === undefined ? current.language : parseLanguage(body.language);
+      const themeMode = body.themeMode === undefined ? current.themeMode : parseThemeMode(body.themeMode);
+
+      db.query("UPDATE app_preferences SET language = ?, theme_mode = ? WHERE id = 1").run(language, themeMode);
+
+      return json({ language, themeMode });
+    }
+
     if (url.pathname === "/api/lists" && req.method === "GET") {
       return json({ lists: getLists(includeArchived) });
     }

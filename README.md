@@ -11,7 +11,7 @@ PowerBoard is a local ToDo/Kanban application for managing multiple boards. The 
 - Inline task editing with descriptions, subtasks, and activity notes
 - Task and list archiving with one-step undo/restore
 - Dashboard counters for open, due today, overdue, and urgent tasks
-- Light, dark, and system theme modes saved in local storage
+- German/English language and light/dark/system theme preferences restored across macOS app restarts
 - Keyboard shortcuts: `/` focuses search, `N` opens the new-task dialog, `Escape` closes dialogs/editing
 
 ## Requirements

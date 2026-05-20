@@ -80,6 +80,11 @@ type TodoPatch = Partial<Pick<Todo, "title" | "description" | "status" | "priori
   listId?: number;
 };
 
+type Preferences = {
+  language: Language;
+  themeMode: ThemeMode;
+};
+
 const lanes: Array<{
   status: TodoStatus;
   icon: typeof Circle;
@@ -165,6 +170,8 @@ const copy = {
     restoreTodo: "ToDo wiederherstellen",
     runUndoError: "Rückgängig konnte nicht ausgeführt werden.",
     save: "Speichern",
+    settingsLoadError: "Einstellungen konnten nicht geladen werden.",
+    settingsSaveError: "Einstellungen konnten nicht gespeichert werden.",
     saveNoteError: "Notiz konnte nicht gespeichert werden.",
     search: "Suche",
     searchPlaceholder: "Titel, Text, Tags",
@@ -270,6 +277,8 @@ const copy = {
     restoreTodo: "Restore ToDo",
     runUndoError: "Undo could not be completed.",
     save: "Save",
+    settingsLoadError: "Settings could not be loaded.",
+    settingsSaveError: "Settings could not be saved.",
     saveNoteError: "Note could not be saved.",
     search: "Search",
     searchPlaceholder: "Title, text, tags",
@@ -366,6 +375,14 @@ function shortDate(value: string, language: Language, noDateLabel: string) {
   return new Intl.DateTimeFormat(language === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "2-digit" }).format(
     new Date(`${value}T12:00:00`),
   );
+}
+
+function isThemeMode(value: string | null): value is ThemeMode {
+  return value === "light" || value === "dark" || value === "system";
+}
+
+function isLanguage(value: string | null): value is Language {
+  return value === "de" || value === "en";
 }
 
 function SelectField({
@@ -552,7 +569,7 @@ export function TodoApp() {
     }
 
     const stored = window.localStorage.getItem("todo-theme");
-    return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+    return isThemeMode(stored) ? stored : "system";
   });
   const [language, setLanguage] = useState<Language>(() => {
     if (typeof window === "undefined") {
@@ -560,7 +577,7 @@ export function TodoApp() {
     }
 
     const stored = window.localStorage.getItem("todo-language");
-    return stored === "de" || stored === "en" ? stored : "de";
+    return isLanguage(stored) ? stored : "de";
   });
   const [editingTodoId, setEditingTodoId] = useState<number | null>(null);
   const [draggedTodoId, setDraggedTodoId] = useState<number | null>(null);
@@ -574,6 +591,36 @@ export function TodoApp() {
   const priorityLabels = t.priorityLabels;
   const laneTitles = t.laneTitles;
   const actionLabels = t.actionLabels;
+
+  const persistPreferences = useCallback(
+    async (preferences: Partial<Preferences>) => {
+      try {
+        await api<Preferences>("/api/preferences", {
+          method: "PATCH",
+          body: JSON.stringify(preferences),
+        });
+      } catch (error) {
+        setError(error instanceof Error ? error.message : t.settingsSaveError);
+      }
+    },
+    [t.settingsSaveError],
+  );
+
+  const changeThemeMode = useCallback(
+    (mode: ThemeMode) => {
+      setThemeMode(mode);
+      void persistPreferences({ themeMode: mode });
+    },
+    [persistPreferences],
+  );
+
+  const changeLanguage = useCallback(
+    (nextLanguage: Language) => {
+      setLanguage(nextLanguage);
+      void persistPreferences({ language: nextLanguage });
+    },
+    [persistPreferences],
+  );
 
   const selectedList = useMemo(
     () => [...lists, ...archivedLists].find(list => list.id === selectedListId) ?? null,
@@ -648,6 +695,30 @@ export function TodoApp() {
       ),
     [filteredTodos],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void api<Preferences>("/api/preferences")
+      .then(preferences => {
+        if (cancelled) {
+          return;
+        }
+
+        if (isLanguage(preferences.language)) {
+          setLanguage(preferences.language);
+        }
+
+        if (isThemeMode(preferences.themeMode)) {
+          setThemeMode(preferences.themeMode);
+        }
+      })
+      .catch(error => setError(error instanceof Error ? error.message : copy.de.settingsLoadError));
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -1100,8 +1171,8 @@ export function TodoApp() {
               </Button>
             </form>
             <div className="flex gap-2 sm:items-center">
-              <LanguageSelect language={language} setLanguage={setLanguage} t={t} />
-              <ThemeSelect themeMode={themeMode} setThemeMode={setThemeMode} t={t} />
+              <LanguageSelect language={language} setLanguage={changeLanguage} t={t} />
+              <ThemeSelect themeMode={themeMode} setThemeMode={changeThemeMode} t={t} />
             </div>
           </div>
         </header>

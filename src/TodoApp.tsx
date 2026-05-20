@@ -135,6 +135,10 @@ const copy = {
     createSubtaskError: "Teilschritt konnte nicht angelegt werden.",
     createTodo: "ToDo anlegen",
     createTodoError: "ToDo konnte nicht angelegt werden.",
+    deleteList: "Liste löschen",
+    deleteListConfirm: "Diese Liste und alle enthaltenen ToDos werden endgültig gelöscht.",
+    deleteListDialogTitle: "Archivierte Liste löschen?",
+    deleteListError: "Liste konnte nicht gelöscht werden.",
     deleteSubtask: "Teilschritt löschen",
     due: "Fälligkeit",
     dueDate: "Fällig",
@@ -242,6 +246,10 @@ const copy = {
     createSubtaskError: "Subtask could not be created.",
     createTodo: "Create ToDo",
     createTodoError: "ToDo could not be created.",
+    deleteList: "Delete list",
+    deleteListConfirm: "This list and all included ToDos will be permanently deleted.",
+    deleteListDialogTitle: "Delete archived list?",
+    deleteListError: "List could not be deleted.",
     deleteSubtask: "Delete subtask",
     due: "Due date",
     dueDate: "Due",
@@ -574,6 +582,7 @@ export function TodoApp() {
   const [newTodoWithoutDue, setNewTodoWithoutDue] = useState(true);
   const [newTodoTags, setNewTodoTags] = useState("");
   const [newTodoDialogOpen, setNewTodoDialogOpen] = useState(false);
+  const [deleteListTarget, setDeleteListTarget] = useState<TodoList | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | TodoStatus>("all");
   const [filterPriority, setFilterPriority] = useState<"all" | Priority>("all");
@@ -607,7 +616,7 @@ export function TodoApp() {
   const t = copy[language];
   const priorityLabels = t.priorityLabels;
   const laneTitles = t.laneTitles;
-  const actionLabels = t.actionLabels;
+  const actionLabels: Record<string, string> = t.actionLabels;
 
   const persistPreferences = useCallback(
     async (preferences: Partial<Preferences>) => {
@@ -820,6 +829,7 @@ export function TodoApp() {
 
       if (event.key === "Escape") {
         setNewTodoDialogOpen(false);
+        setDeleteListTarget(null);
         setEditingTodoId(null);
         return;
       }
@@ -930,6 +940,32 @@ export function TodoApp() {
       await Promise.all([loadLists(), loadTodos(listId)]);
     } catch (error) {
       setError(error instanceof Error ? error.message : t.archiveListError);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteArchivedList() {
+    if (!deleteListTarget?.archivedAt) {
+      return;
+    }
+
+    const listId = deleteListTarget.id;
+    setSaving(true);
+    setError(null);
+
+    try {
+      await api(`/api/lists/${listId}`, {
+        method: "DELETE",
+      });
+      setDeleteListTarget(null);
+      setLastUndo(null);
+      if (selectedListId === listId) {
+        setTodos([]);
+      }
+      await loadLists();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : t.deleteListError);
     } finally {
       setSaving(false);
     }
@@ -1292,15 +1328,31 @@ export function TodoApp() {
                       {t.save}
                     </Button>
                   </form>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => void archiveList(!isArchivedList)}
-                    disabled={saving}
-                  >
-                    {isArchivedList ? <RotateCcw /> : <Archive />}
-                    {isArchivedList ? t.restoreList : t.archiveList}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {isArchivedList ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon-sm"
+                        onClick={() => setDeleteListTarget(selectedList)}
+                        disabled={saving}
+                        className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-900/70 dark:text-red-300 dark:hover:bg-red-950/40 dark:hover:text-red-200"
+                        aria-label={t.deleteList}
+                        title={t.deleteList}
+                      >
+                        <Trash2 />
+                      </Button>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void archiveList(!isArchivedList)}
+                      disabled={saving}
+                    >
+                      {isArchivedList ? <RotateCcw /> : <Archive />}
+                      {isArchivedList ? t.restoreList : t.archiveList}
+                    </Button>
+                  </div>
                 </div>
 
                 {!isArchivedList ? (
@@ -1413,6 +1465,55 @@ export function TodoApp() {
                         </Button>
                       </div>
                     </form>
+                  </div>
+                ) : null}
+
+                {deleteListTarget ? (
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="delete-list-dialog-title"
+                    onMouseDown={event => {
+                      if (event.target === event.currentTarget) {
+                        setDeleteListTarget(null);
+                      }
+                    }}
+                  >
+                    <div className="w-full max-w-md rounded-md border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+                      <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3 dark:border-slate-800">
+                        <div>
+                          <h2 id="delete-list-dialog-title" className="text-lg font-semibold text-slate-950 dark:text-slate-50">
+                            {t.deleteListDialogTitle}
+                          </h2>
+                          <p className="mt-1 text-sm font-medium text-slate-700 dark:text-slate-200">
+                            {deleteListTarget.name}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => setDeleteListTarget(null)}
+                          aria-label={t.closeDialog}
+                          title={t.closeDialog}
+                        >
+                          <X />
+                        </Button>
+                      </div>
+                      <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+                        {t.deleteListConfirm}
+                      </p>
+                      <div className="mt-5 flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+                        <Button type="button" variant="ghost" onClick={() => setDeleteListTarget(null)} disabled={saving}>
+                          {t.cancel}
+                        </Button>
+                        <Button type="button" variant="destructive" onClick={() => void deleteArchivedList()} disabled={saving}>
+                          <Trash2 />
+                          {t.deleteList}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 ) : null}
 
@@ -1657,7 +1758,7 @@ function TodoCard({
   const readOnly = isArchivedTodo || listReadOnly;
   const targetLists = activeLists.filter(list => list.id !== todo.listId);
   const priorityLabels = t.priorityLabels;
-  const actionLabels = t.actionLabels;
+  const actionLabels: Record<string, string> = t.actionLabels;
 
   useEffect(() => {
     if (editing) {

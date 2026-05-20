@@ -450,12 +450,22 @@ async function handleApi(req: Request) {
 
     if (listMatch && req.method === "DELETE") {
       const listId = Number(listMatch[1]);
-      const result = db.query("UPDATE todo_lists SET archived_at = CURRENT_TIMESTAMP WHERE id = ?").run(listId);
+      const current = db
+        .query<{ archivedAt: string | null }, [number]>(
+          "SELECT archived_at AS archivedAt FROM todo_lists WHERE id = ?",
+        )
+        .get(listId);
 
-      if (!result.changes) {
+      if (!current) {
         return json({ error: "List not found" }, 404);
       }
 
+      if (current.archivedAt) {
+        db.query("DELETE FROM todo_lists WHERE id = ?").run(listId);
+        return json({ ok: true, deleted: true });
+      }
+
+      db.query("UPDATE todo_lists SET archived_at = CURRENT_TIMESTAMP WHERE id = ?").run(listId);
       logActivity(listId, null, "list-archived");
 
       return json({ ok: true });

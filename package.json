@@ -1,5 +1,5 @@
 {
-  "name": "todo-app",
+  "name": "powerboard",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,6 +8,7 @@
     "dev:api": "bun --hot src/index.ts",
     "app:start": "./start.sh",
     "app:stop": "./stop.sh",
+    "clean": "rimraf dist build release .runtime logs",
     "start": "NODE_ENV=production bun src/index.ts",
     "build": "vite build",
     "package:mac": "node scripts/build-macos-dmg.mjs",
@@ -15,8 +16,8 @@
   },
   "main": "electron/main.cjs",
   "build": {
-    "appId": "de.local.aufgabenboard",
-    "productName": "Aufgabenboard",
+    "appId": "de.local.powerboard",
+    "productName": "PowerBoard",
     "directories": {
       "output": "release"
     },
@@ -76,6 +77,7 @@
     "@vitejs/plugin-react": "^6.0.2",
     "electron": "^42.2.0",
     "electron-builder": "^26.8.1",
+    "rimraf": "^2.6.3",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.1.11",
     "vite": "^8.0.13"

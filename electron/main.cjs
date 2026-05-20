@@ -8,7 +8,9 @@ const path = require("node:path");
 let apiProcess = null;
 let mainWindow = null;
 
-app.setName("Aufgabenboard");
+app.setName("PowerBoard");
+
+const legacyAppName = "Aufgabenboard";
 
 function isPackagedApp() {
   return app.isPackaged;
@@ -68,6 +70,7 @@ function waitForServer(url, timeoutMs = 15000) {
 async function startApiServer() {
   const port = await findFreePort();
   const appDataDir = path.join(app.getPath("userData"), "data");
+  const legacyDataDir = path.join(app.getPath("appData"), legacyAppName, "data");
   const distDir = getResourcePath("dist");
   const serverBinary = getResourcePath("server", process.platform === "win32" ? "todo-api.exe" : "todo-api");
   const env = {
@@ -78,6 +81,10 @@ async function startApiServer() {
     TODO_APP_DATA_DIR: appDataDir,
     TODO_APP_DIST_DIR: distDir,
   };
+
+  if (!fs.existsSync(appDataDir) && fs.existsSync(legacyDataDir)) {
+    fs.cpSync(legacyDataDir, appDataDir, { recursive: true });
+  }
 
   fs.mkdirSync(appDataDir, { recursive: true });
 
@@ -115,11 +122,11 @@ async function createWindow() {
   const appUrl = await startApiServer();
 
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 860,
-    minWidth: 980,
-    minHeight: 680,
-    title: "Aufgabenboard",
+    width: 1440,
+    height: 960,
+    minWidth: 1180,
+    minHeight: 760,
+    title: "PowerBoard",
     backgroundColor: "#f8fafc",
     autoHideMenuBar: true,
     webPreferences: {

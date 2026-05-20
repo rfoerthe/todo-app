@@ -1,39 +1,35 @@
-# Local ToDo Kanban
+# PowerBoard Documentation
 
-A local full-stack ToDo/Kanban application built with **Vite**, **Bun**, **React 19**, **Tailwind CSS v4**, **shadcn/ui**, and embedded **SQLite**.
+This documentation describes PowerBoard, the current full-stack ToDo/Kanban application: a Vite/React frontend, a Bun API/static server, embedded SQLite persistence, helper scripts for local process management, and optional Electron packaging for macOS.
 
 ## Quick Start
 
 ```bash
-# Install dependencies
 bun install
-
-# Start development server
-bun dev
-
-# Start Bun API server in another terminal
-bun run dev:api
-
-# Build for production
-bun run build
-
-# Run production server
-bun start
+./start.sh
 ```
+
+Open `http://localhost:5173/`.
+
+Stop the development processes again:
+
+```bash
+./stop.sh
+```
+
+Manual development is still available with `bun dev` and `bun run dev:api` in separate terminals.
 
 ## Project Overview
 
 | Aspect | Value |
 |---|---|
-| **Runtime** | Bun v1.3+ |
-| **Framework** | React 19 (no RSC) |
-| **CSS** | Tailwind CSS v4 + shadcn/ui (New York style) |
-| **Build** | Vite + `@tailwindcss/vite` |
-| **API Server** | Bun native `serve()` |
-| **Persistence** | Embedded SQLite via `bun:sqlite` |
-| **Component Style** | shadcn/ui v2 (file-based, `data-slot` pattern) |
-| **Icons** | Lucide React |
-| **TypeScript** | Strict mode, `Preserve` modules |
+| Runtime | Bun 1.3+ |
+| Frontend | React 19, Vite 8, TypeScript |
+| Styling | Tailwind CSS v4, shadcn/ui New York style, lucide-react |
+| API Server | Bun native `Bun.serve()` |
+| Persistence | Embedded SQLite via `bun:sqlite` |
+| Desktop Shell | Electron, packaged with `electron-builder` |
+| Local Helpers | `start.sh` and `stop.sh` manage API/frontend background processes |
 
 ## Table of Contents
 

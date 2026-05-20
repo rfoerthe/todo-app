@@ -823,7 +823,7 @@ export function TodoApp() {
       <div className="mx-auto flex min-h-screen w-full max-w-[1480px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
         <header className="flex flex-col justify-between gap-4 border-b border-slate-200 pb-5 dark:border-slate-800 md:flex-row md:items-end">
           <div>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Aufgabenboard</p>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">PowerBoard</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">Listen & ToDos</h1>
           </div>
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end md:w-auto">

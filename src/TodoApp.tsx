@@ -33,6 +33,8 @@ type StoryPoints = 0 | 1 | 2 | 3 | 5 | 8 | 13 | 21 | 40;
 type DueFilter = "all" | "today" | "overdue";
 type SortMode = "status" | "priority" | "due" | "updated";
 type ThemeMode = "light" | "dark" | "system";
+type Language = "de" | "en";
+type UndoLabel = "restoreList" | "archiveListAgain" | "restoreTodo" | "archiveTodoAgain";
 
 type TodoList = {
   id: number;
@@ -80,25 +82,21 @@ type TodoPatch = Partial<Pick<Todo, "title" | "description" | "status" | "priori
 
 const lanes: Array<{
   status: TodoStatus;
-  title: string;
   icon: typeof Circle;
   tone: string;
 }> = [
   {
     status: "new",
-    title: "Neu",
     icon: Circle,
     tone: "border-sky-200 bg-sky-50/70 text-sky-950 dark:border-sky-900/70 dark:bg-sky-950/35 dark:text-sky-100",
   },
   {
     status: "in_progress",
-    title: "In Bearbeitung",
     icon: Clock3,
     tone: "border-amber-200 bg-amber-50/70 text-amber-950 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-100",
   },
   {
     status: "done",
-    title: "Erledigt",
     icon: CheckCircle2,
     tone:
       "border-emerald-200 bg-emerald-50/70 text-emerald-950 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-100",
@@ -107,25 +105,222 @@ const lanes: Array<{
 
 const statusOrder: TodoStatus[] = ["new", "in_progress", "done"];
 const priorityOrder: Priority[] = ["urgent", "high", "medium", "low"];
-const priorityLabels: Record<Priority, string> = {
-  low: "Niedrig",
-  medium: "Normal",
-  high: "Hoch",
-  urgent: "Dringend",
-};
 const storyPointOptions: StoryPoints[] = [0, 1, 2, 3, 5, 8, 13, 21, 40];
-const actionLabels: Record<string, string> = {
-  archived: "Archiviert",
-  created: "Erstellt",
-  note: "Notiz",
-  restored: "Wiederhergestellt",
-  "subtask-added": "Teilschritt hinzugefügt",
-  "subtask-done": "Teilschritt erledigt",
-  "subtask-open": "Teilschritt geöffnet",
-  "subtask-removed": "Teilschritt entfernt",
-  moved: "Verschoben",
-  updated: "Bearbeitet",
-};
+
+const copy = {
+  de: {
+    activity: "Aktivität",
+    active: "Aktiv",
+    activeList: "Aktive Liste",
+    all: "Alle",
+    archive: "Archiv",
+    archiveList: "Liste archivieren",
+    archiveHide: "Archiv ausblenden",
+    archiveListAgain: "Archivierung erneut setzen",
+    archiveListError: "Liste konnte nicht archiviert werden.",
+    archiveShow: "Archiv einblenden",
+    archiveTodo: "ToDo archivieren",
+    archiveTodoAgain: "ToDo erneut archivieren",
+    archived: "Archiviert",
+    cancel: "Abbrechen",
+    checklist: "Checkliste",
+    closeDialog: "Dialog schließen",
+    createListError: "Liste konnte nicht angelegt werden.",
+    createSubtaskError: "Teilschritt konnte nicht angelegt werden.",
+    createTodo: "ToDo anlegen",
+    createTodoError: "ToDo konnte nicht angelegt werden.",
+    deleteSubtask: "Teilschritt löschen",
+    due: "Fälligkeit",
+    dueDate: "Fällig",
+    dueToday: "Heute",
+    editTodo: "ToDo bearbeiten",
+    emptyLane: "Keine ToDos",
+    emptyLists: "Lege eine Liste an, um dein erstes Kanban-Board zu starten.",
+    filter: "Dringend",
+    language: "Sprache",
+    list: "Liste",
+    listArchiveEmpty: "Kein Listenarchiv.",
+    lists: "Listen",
+    listsLoading: "Lade Listen...",
+    loadListsError: "Listen konnten nicht geladen werden.",
+    loadTodosError: "ToDos konnten nicht geladen werden.",
+    moveLeft: "Nach links verschieben",
+    moveRight: "Nach rechts verschieben",
+    moveToList: "In Liste verschieben",
+    movePlaceholder: "Verschieben",
+    newList: "Neue Liste",
+    newTodo: "Neues ToDo",
+    noActiveLists: "Noch keine aktiven Listen.",
+    noDate: "Ohne Datum",
+    noDueDate: "Ohne Fälligkeit",
+    noEntries: "Noch keine Einträge.",
+    noSubtasks: "Noch keine Teilschritte.",
+    note: "Notiz",
+    optional: "Optional",
+    open: "Offen",
+    overdue: "Überfällig",
+    priority: "Priorität",
+    renameListError: "Liste konnte nicht umbenannt werden.",
+    restoreList: "Liste wiederherstellen",
+    restoreTodo: "ToDo wiederherstellen",
+    runUndoError: "Rückgängig konnte nicht ausgeführt werden.",
+    save: "Speichern",
+    saveNoteError: "Notiz konnte nicht gespeichert werden.",
+    search: "Suche",
+    searchPlaceholder: "Titel, Text, Tags",
+    showActive: "Aktiv",
+    sort: "Sortierung",
+    sortDue: "Fällig",
+    sortPriority: "Priorität",
+    sortStatus: "Status",
+    sortUpdated: "Zuletzt geändert",
+    status: "Status",
+    subtask: "Teilschritt",
+    tags: "Tags",
+    tagsPlaceholder: "Arbeit, Idee",
+    taskDescription: "Beschreibung",
+    taskTitle: "Titel",
+    taskTitlePlaceholder: "Neue Aufgabe",
+    theme: "Design",
+    themeDark: "Nacht",
+    themeLight: "Tag",
+    themeSystem: "System",
+    title: "Listen & ToDos",
+    undoAvailable: "Letzte Änderung kann rückgängig gemacht werden.",
+    updateSubtaskError: "Teilschritt konnte nicht geändert werden.",
+    updateTodoError: "ToDo konnte nicht aktualisiert werden.",
+    priorityLabels: {
+      low: "Niedrig",
+      medium: "Normal",
+      high: "Hoch",
+      urgent: "Dringend",
+    },
+    laneTitles: {
+      new: "Neu",
+      in_progress: "In Bearbeitung",
+      done: "Erledigt",
+    },
+    actionLabels: {
+      archived: "Archiviert",
+      created: "Erstellt",
+      note: "Notiz",
+      restored: "Wiederhergestellt",
+      "subtask-added": "Teilschritt hinzugefügt",
+      "subtask-done": "Teilschritt erledigt",
+      "subtask-open": "Teilschritt geöffnet",
+      "subtask-removed": "Teilschritt entfernt",
+      moved: "Verschoben",
+      updated: "Bearbeitet",
+    },
+  },
+  en: {
+    activity: "Activity",
+    active: "Active",
+    activeList: "Active list",
+    all: "All",
+    archive: "Archive",
+    archiveList: "Archive list",
+    archiveHide: "Hide archive",
+    archiveListAgain: "Archive list again",
+    archiveListError: "List could not be archived.",
+    archiveShow: "Show archive",
+    archiveTodo: "Archive ToDo",
+    archiveTodoAgain: "Archive ToDo again",
+    archived: "Archived",
+    cancel: "Cancel",
+    checklist: "Checklist",
+    closeDialog: "Close dialog",
+    createListError: "List could not be created.",
+    createSubtaskError: "Subtask could not be created.",
+    createTodo: "Create ToDo",
+    createTodoError: "ToDo could not be created.",
+    deleteSubtask: "Delete subtask",
+    due: "Due date",
+    dueDate: "Due",
+    dueToday: "Today",
+    editTodo: "Edit ToDo",
+    emptyLane: "No ToDos",
+    emptyLists: "Create a list to start your first Kanban board.",
+    filter: "Urgent",
+    language: "Language",
+    list: "List",
+    listArchiveEmpty: "No archived lists.",
+    lists: "Lists",
+    listsLoading: "Loading lists...",
+    loadListsError: "Lists could not be loaded.",
+    loadTodosError: "ToDos could not be loaded.",
+    moveLeft: "Move left",
+    moveRight: "Move right",
+    moveToList: "Move to list",
+    movePlaceholder: "Move",
+    newList: "New list",
+    newTodo: "New ToDo",
+    noActiveLists: "No active lists yet.",
+    noDate: "No date",
+    noDueDate: "No due date",
+    noEntries: "No entries yet.",
+    noSubtasks: "No subtasks yet.",
+    note: "Note",
+    optional: "Optional",
+    open: "Open",
+    overdue: "Overdue",
+    priority: "Priority",
+    renameListError: "List could not be renamed.",
+    restoreList: "Restore list",
+    restoreTodo: "Restore ToDo",
+    runUndoError: "Undo could not be completed.",
+    save: "Save",
+    saveNoteError: "Note could not be saved.",
+    search: "Search",
+    searchPlaceholder: "Title, text, tags",
+    showActive: "Active",
+    sort: "Sort",
+    sortDue: "Due",
+    sortPriority: "Priority",
+    sortStatus: "Status",
+    sortUpdated: "Last updated",
+    status: "Status",
+    subtask: "Subtask",
+    tags: "Tags",
+    tagsPlaceholder: "Work, idea",
+    taskDescription: "Description",
+    taskTitle: "Title",
+    taskTitlePlaceholder: "New task",
+    theme: "Theme",
+    themeDark: "Dark",
+    themeLight: "Light",
+    themeSystem: "System",
+    title: "Lists & ToDos",
+    undoAvailable: "The last change can be undone.",
+    updateSubtaskError: "Subtask could not be changed.",
+    updateTodoError: "ToDo could not be updated.",
+    priorityLabels: {
+      low: "Low",
+      medium: "Normal",
+      high: "High",
+      urgent: "Urgent",
+    },
+    laneTitles: {
+      new: "New",
+      in_progress: "In progress",
+      done: "Done",
+    },
+    actionLabels: {
+      archived: "Archived",
+      created: "Created",
+      note: "Note",
+      restored: "Restored",
+      "subtask-added": "Subtask added",
+      "subtask-done": "Subtask completed",
+      "subtask-open": "Subtask reopened",
+      "subtask-removed": "Subtask removed",
+      moved: "Moved",
+      updated: "Edited",
+    },
+  },
+} satisfies Record<Language, Record<string, unknown>>;
+
+type CopyText = (typeof copy)[Language];
 
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -163,12 +358,14 @@ function isOverdue(todo: Todo) {
   return Boolean(todo.dueAt && todo.dueAt < todayDate() && todo.status !== "done");
 }
 
-function shortDate(value: string) {
+function shortDate(value: string, language: Language, noDateLabel: string) {
   if (!value) {
-    return "Ohne Datum";
+    return noDateLabel;
   }
 
-  return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit" }).format(new Date(`${value}T12:00:00`));
+  return new Intl.DateTimeFormat(language === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "2-digit" }).format(
+    new Date(`${value}T12:00:00`),
+  );
 }
 
 function SelectField({
@@ -200,7 +397,8 @@ function DueDateField({
   dueAt,
   id,
   inline = false,
-  label = "Fällig",
+  label,
+  noDueLabel,
   setDueAt,
   setWithoutDue,
   withoutDue,
@@ -208,7 +406,8 @@ function DueDateField({
   dueAt: string;
   id: string;
   inline?: boolean;
-  label?: string;
+  label: string;
+  noDueLabel: string;
   setDueAt: (value: string) => void;
   setWithoutDue: (value: boolean) => void;
   withoutDue: boolean;
@@ -240,39 +439,79 @@ function DueDateField({
               }
             }}
           />
-          Ohne Fälligkeit
+          {noDueLabel}
         </label>
       </div>
     </div>
   );
 }
 
-function ThemeSelect({ themeMode, setThemeMode }: { themeMode: ThemeMode; setThemeMode: (mode: ThemeMode) => void }) {
+function ThemeSelect({
+  themeMode,
+  setThemeMode,
+  t,
+}: {
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
+  t: CopyText;
+}) {
   const modes: Array<{ mode: ThemeMode; label: string; symbol: string }> = [
-    { mode: "light", label: "Tag", symbol: "☀" },
-    { mode: "dark", label: "Nacht", symbol: "☾" },
-    { mode: "system", label: "System", symbol: "◐" },
+    { mode: "light", label: t.themeLight, symbol: "☀" },
+    { mode: "dark", label: t.themeDark, symbol: "☾" },
+    { mode: "system", label: t.themeSystem, symbol: "◐" },
   ];
 
   return (
-    <div className="sm:border-l sm:border-slate-200 sm:pl-3 dark:sm:border-slate-800">
+    <div>
       <div className="relative">
         <Label htmlFor="theme-mode" className="sr-only">
-          Design
+          {t.theme}
         </Label>
         <select
           id="theme-mode"
           value={themeMode}
           onChange={event => setThemeMode(event.target.value as ThemeMode)}
           className="h-9 w-16 appearance-none rounded-md border border-slate-200 bg-white pr-7 pl-3 text-center text-lg font-medium text-slate-900 shadow-xs outline-none transition-colors hover:border-slate-300 focus-visible:border-slate-950 focus-visible:ring-2 focus-visible:ring-slate-950/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-slate-600 dark:focus-visible:border-slate-300 dark:focus-visible:ring-slate-300/10"
-          aria-label="Design"
-          title="Design"
+          aria-label={t.theme}
+          title={t.theme}
         >
           {modes.map(({ mode, label, symbol }) => (
             <option key={mode} value={mode} aria-label={label}>
               {symbol}
             </option>
           ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2 text-slate-400" />
+      </div>
+    </div>
+  );
+}
+
+function LanguageSelect({
+  language,
+  setLanguage,
+  t,
+}: {
+  language: Language;
+  setLanguage: (language: Language) => void;
+  t: CopyText;
+}) {
+  return (
+    <div className="sm:border-l sm:border-slate-200 sm:pl-3 dark:sm:border-slate-800">
+      <div className="relative">
+        <Label htmlFor="language-mode" className="sr-only">
+          {t.language}
+        </Label>
+        <select
+          id="language-mode"
+          value={language}
+          onChange={event => setLanguage(event.target.value as Language)}
+          className="h-9 w-[4.5rem] appearance-none rounded-md border border-slate-200 bg-white pr-7 pl-3 text-sm font-semibold text-slate-900 shadow-xs outline-none transition-colors hover:border-slate-300 focus-visible:border-slate-950 focus-visible:ring-2 focus-visible:ring-slate-950/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-slate-600 dark:focus-visible:border-slate-300 dark:focus-visible:ring-slate-300/10"
+          aria-label={t.language}
+          title={t.language}
+        >
+          <option value="de">DE</option>
+          <option value="en">EN</option>
         </select>
         <ChevronDown className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2 text-slate-400" />
       </div>
@@ -315,14 +554,26 @@ export function TodoApp() {
     const stored = window.localStorage.getItem("todo-theme");
     return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
   });
+  const [language, setLanguage] = useState<Language>(() => {
+    if (typeof window === "undefined") {
+      return "de";
+    }
+
+    const stored = window.localStorage.getItem("todo-language");
+    return stored === "de" || stored === "en" ? stored : "de";
+  });
   const [editingTodoId, setEditingTodoId] = useState<number | null>(null);
   const [draggedTodoId, setDraggedTodoId] = useState<number | null>(null);
-  const [lastUndo, setLastUndo] = useState<{ label: string; run: () => Promise<void> } | null>(null);
+  const [lastUndo, setLastUndo] = useState<{ label: UndoLabel; run: () => Promise<void> } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const t = copy[language];
+  const priorityLabels = t.priorityLabels;
+  const laneTitles = t.laneTitles;
+  const actionLabels = t.actionLabels;
 
   const selectedList = useMemo(
     () => [...lists, ...archivedLists].find(list => list.id === selectedListId) ?? null,
@@ -418,6 +669,11 @@ export function TodoApp() {
     window.localStorage.setItem("todo-archive-lists-expanded", String(archiveListsExpanded));
   }, [archiveListsExpanded]);
 
+  useEffect(() => {
+    window.localStorage.setItem("todo-language", language);
+    document.documentElement.lang = language;
+  }, [language]);
+
   const loadLists = useCallback(async () => {
     const [activeData, archivedData] = await Promise.all([
       api<{ lists: TodoList[] }>("/api/lists"),
@@ -452,9 +708,9 @@ export function TodoApp() {
 
   useEffect(() => {
     void loadLists()
-      .catch(error => setError(error instanceof Error ? error.message : "Listen konnten nicht geladen werden."))
+      .catch(error => setError(error instanceof Error ? error.message : t.loadListsError))
       .finally(() => setLoading(false));
-  }, [loadLists]);
+  }, [loadLists, t.loadListsError]);
 
   useEffect(() => {
     if (!selectedListId) {
@@ -465,9 +721,9 @@ export function TodoApp() {
     setRenameValue(selectedList?.name ?? "");
     setEditingTodoId(null);
     void loadTodos(selectedListId).catch(error =>
-      setError(error instanceof Error ? error.message : "ToDos konnten nicht geladen werden."),
+      setError(error instanceof Error ? error.message : t.loadTodosError),
     );
-  }, [loadTodos, selectedList?.archivedAt, selectedList?.name, selectedListId, showAllTodos]);
+  }, [loadTodos, selectedList?.archivedAt, selectedList?.name, selectedListId, showAllTodos, t.loadTodosError]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -528,7 +784,7 @@ export function TodoApp() {
       await loadLists();
       setSelectedListId(created.id);
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Liste konnte nicht angelegt werden.");
+      setError(error instanceof Error ? error.message : t.createListError);
     } finally {
       setSaving(false);
     }
@@ -551,7 +807,7 @@ export function TodoApp() {
       });
       await loadLists();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Liste konnte nicht umbenannt werden.");
+      setError(error instanceof Error ? error.message : t.renameListError);
     } finally {
       setSaving(false);
     }
@@ -572,7 +828,7 @@ export function TodoApp() {
         body: JSON.stringify({ archived }),
       });
       setLastUndo({
-        label: archived ? "Liste wiederherstellen" : "Archivierung erneut setzen",
+        label: archived ? "restoreList" : "archiveListAgain",
         run: async () => {
           await api(`/api/lists/${listId}`, {
             method: "PATCH",
@@ -585,7 +841,7 @@ export function TodoApp() {
       setSelectedListId(listId);
       await Promise.all([loadLists(), loadTodos(listId)]);
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Liste konnte nicht archiviert werden.");
+      setError(error instanceof Error ? error.message : t.archiveListError);
     } finally {
       setSaving(false);
     }
@@ -631,7 +887,7 @@ export function TodoApp() {
       setNewTodoDialogOpen(false);
       await reloadSelected();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "ToDo konnte nicht angelegt werden.");
+      setError(error instanceof Error ? error.message : t.createTodoError);
     } finally {
       setSaving(false);
     }
@@ -667,7 +923,7 @@ export function TodoApp() {
       });
       await reloadSelected();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "ToDo konnte nicht aktualisiert werden.");
+      setError(error instanceof Error ? error.message : t.updateTodoError);
     } finally {
       setSaving(false);
     }
@@ -680,7 +936,7 @@ export function TodoApp() {
 
     await patchTodo(todo.id, { archived });
     setLastUndo({
-      label: archived ? "ToDo wiederherstellen" : "ToDo erneut archivieren",
+      label: archived ? "restoreTodo" : "archiveTodoAgain",
       run: async () => {
         await api(`/api/todos/${todo.id}`, {
           method: "PATCH",
@@ -706,7 +962,7 @@ export function TodoApp() {
       });
       await reloadSelected();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Teilschritt konnte nicht angelegt werden.");
+      setError(error instanceof Error ? error.message : t.createSubtaskError);
     } finally {
       setSaving(false);
     }
@@ -727,7 +983,7 @@ export function TodoApp() {
       });
       await reloadSelected();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Teilschritt konnte nicht geändert werden.");
+      setError(error instanceof Error ? error.message : t.updateSubtaskError);
     } finally {
       setSaving(false);
     }
@@ -745,7 +1001,7 @@ export function TodoApp() {
       await api(`/api/subtasks/${subtaskId}`, { method: "DELETE" });
       await reloadSelected();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Teilschritt konnte nicht gelöscht werden.");
+      setError(error instanceof Error ? error.message : t.updateSubtaskError);
     } finally {
       setSaving(false);
     }
@@ -766,7 +1022,7 @@ export function TodoApp() {
       });
       await reloadSelected();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Notiz konnte nicht gespeichert werden.");
+      setError(error instanceof Error ? error.message : t.saveNoteError);
     } finally {
       setSaving(false);
     }
@@ -784,7 +1040,7 @@ export function TodoApp() {
     try {
       await undo.run();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Rückgängig konnte nicht ausgeführt werden.");
+      setError(error instanceof Error ? error.message : t.runUndoError);
     } finally {
       setSaving(false);
     }
@@ -824,26 +1080,29 @@ export function TodoApp() {
         <header className="flex flex-col justify-between gap-4 border-b border-slate-200 pb-5 dark:border-slate-800 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">PowerBoard</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">Listen & ToDos</h1>
+            <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">{t.title}</h1>
           </div>
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end md:w-auto">
             <form onSubmit={createList} className="flex w-full gap-2 sm:max-w-md">
               <Label htmlFor="list-name" className="sr-only">
-                Neue Liste
+                {t.newList}
               </Label>
               <Input
                 id="list-name"
                 value={newListName}
                 onChange={event => setNewListName(event.target.value)}
-                placeholder="Neue Liste"
+                placeholder={t.newList}
                 className="bg-white dark:bg-slate-900"
               />
               <Button type="submit" disabled={saving || !newListName.trim()}>
                 <Plus />
-                Liste
+                {t.list}
               </Button>
             </form>
-            <ThemeSelect themeMode={themeMode} setThemeMode={setThemeMode} />
+            <div className="flex gap-2 sm:items-center">
+              <LanguageSelect language={language} setLanguage={setLanguage} t={t} />
+              <ThemeSelect themeMode={themeMode} setThemeMode={setThemeMode} t={t} />
+            </div>
           </div>
         </header>
 
@@ -852,10 +1111,10 @@ export function TodoApp() {
         ) : null}
         {lastUndo ? (
           <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-            <span>Letzte Änderung kann rückgängig gemacht werden.</span>
+            <span>{t.undoAvailable}</span>
             <Button type="button" variant="outline" size="sm" onClick={() => void runUndo()} disabled={saving}>
               <RotateCcw />
-              {lastUndo.label}
+              {t[lastUndo.label]}
             </Button>
           </div>
         ) : null}
@@ -864,23 +1123,23 @@ export function TodoApp() {
           <aside className="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-800 lg:border-r lg:border-b-0 lg:pr-6 lg:pb-0">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
               <ListTodo className="size-4" />
-              Listen
+              {t.lists}
             </div>
 
             <div className="flex flex-col gap-4">
               <section className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Aktiv
+                    {t.active}
                   </h2>
                   <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200">
                     {lists.length}
                   </span>
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
-                  {loading ? <p className="text-sm text-slate-500 dark:text-slate-400">Lade Listen...</p> : null}
+                  {loading ? <p className="text-sm text-slate-500 dark:text-slate-400">{t.listsLoading}</p> : null}
                   {!loading && lists.length === 0 ? (
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Noch keine aktiven Listen.</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t.noActiveLists}</p>
                   ) : null}
                   {lists.map(list => renderListButton(list))}
                 </div>
@@ -889,7 +1148,7 @@ export function TodoApp() {
               <section className="flex flex-col gap-2 border-t border-slate-200 pt-3 dark:border-slate-800">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Archiv
+                    {t.archive}
                   </h2>
                   <Button
                     type="button"
@@ -897,8 +1156,8 @@ export function TodoApp() {
                     size="icon-sm"
                     onClick={() => setArchiveListsExpanded(current => !current)}
                     className="border-amber-300 text-amber-800 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-950/40"
-                    aria-label={archiveListsExpanded ? "Archiv ausblenden" : "Archiv einblenden"}
-                    title={archiveListsExpanded ? "Archiv ausblenden" : "Archiv einblenden"}
+                    aria-label={archiveListsExpanded ? t.archiveHide : t.archiveShow}
+                    title={archiveListsExpanded ? t.archiveHide : t.archiveShow}
                   >
                     {archiveListsExpanded ? <Minus /> : <Plus />}
                   </Button>
@@ -906,7 +1165,7 @@ export function TodoApp() {
                 {archiveListsExpanded ? (
                   <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
                     {!loading && archivedLists.length === 0 ? (
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Kein Listenarchiv.</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{t.listArchiveEmpty}</p>
                     ) : null}
                     {archivedLists.map(list => renderListButton(list, true))}
                   </div>
@@ -919,16 +1178,16 @@ export function TodoApp() {
             {selectedList ? (
               <>
                 <div className="grid gap-3 md:grid-cols-4">
-                  <Metric icon={Inbox} label="Offen" value={dashboard.open} />
-                  <Metric icon={CalendarDays} label="Heute" value={dashboard.dueToday} />
-                  <Metric icon={Clock3} label="Überfällig" value={dashboard.overdue} tone={dashboard.overdue ? "text-red-700" : ""} />
-                  <Metric icon={Filter} label="Dringend" value={dashboard.urgent} tone={dashboard.urgent ? "text-amber-700" : ""} />
+                  <Metric icon={Inbox} label={t.open} value={dashboard.open} />
+                  <Metric icon={CalendarDays} label={t.dueToday} value={dashboard.dueToday} />
+                  <Metric icon={Clock3} label={t.overdue} value={dashboard.overdue} tone={dashboard.overdue ? "text-red-700" : ""} />
+                  <Metric icon={Filter} label={t.filter} value={dashboard.urgent} tone={dashboard.urgent ? "text-amber-700" : ""} />
                 </div>
 
                 <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-end md:justify-between">
                   <form onSubmit={renameList} className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
                     <Label htmlFor="rename-list" className="shrink-0 text-sm text-slate-500 dark:text-slate-400">
-                      Aktive Liste
+                      {t.activeList}
                     </Label>
                     <Input
                       id="rename-list"
@@ -942,7 +1201,7 @@ export function TodoApp() {
                       variant="secondary"
                       disabled={saving || isArchivedList || !renameValue.trim() || renameValue === selectedList.name}
                     >
-                      Speichern
+                      {t.save}
                     </Button>
                   </form>
                   <Button
@@ -952,7 +1211,7 @@ export function TodoApp() {
                     disabled={saving}
                   >
                     {isArchivedList ? <RotateCcw /> : <Archive />}
-                    {isArchivedList ? "Liste wiederherstellen" : "Liste archivieren"}
+                    {isArchivedList ? t.restoreList : t.archiveList}
                   </Button>
                 </div>
 
@@ -960,7 +1219,7 @@ export function TodoApp() {
                   <div className="flex justify-end">
                     <Button type="button" onClick={() => setNewTodoDialogOpen(true)} disabled={saving}>
                       <Plus />
-                      ToDo anlegen
+                      {t.createTodo}
                     </Button>
                   </div>
                 ) : null}
@@ -984,7 +1243,7 @@ export function TodoApp() {
                       <div className="mb-4 flex items-start justify-between gap-3 border-b border-slate-200 pb-3 dark:border-slate-800">
                         <div>
                           <h2 id="new-todo-dialog-title" className="text-lg font-semibold text-slate-950 dark:text-slate-50">
-                            Neues ToDo
+                            {t.newTodo}
                           </h2>
                           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                             {selectedList.name}
@@ -995,8 +1254,8 @@ export function TodoApp() {
                           variant="ghost"
                           size="icon-sm"
                           onClick={() => setNewTodoDialogOpen(false)}
-                          aria-label="Dialog schließen"
-                          title="Dialog schließen"
+                          aria-label={t.closeDialog}
+                          title={t.closeDialog}
                         >
                           <X />
                         </Button>
@@ -1004,20 +1263,20 @@ export function TodoApp() {
 
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="flex flex-col gap-2 md:col-span-2">
-                          <Label htmlFor="todo-title">Titel</Label>
-                          <Input ref={titleInputRef} id="todo-title" name="title" placeholder="Neue Aufgabe" />
+                          <Label htmlFor="todo-title">{t.taskTitle}</Label>
+                          <Input ref={titleInputRef} id="todo-title" name="title" placeholder={t.taskTitlePlaceholder} />
                         </div>
                         <div className="flex flex-col gap-2 md:col-span-2">
-                          <Label htmlFor="todo-description">Beschreibung</Label>
+                          <Label htmlFor="todo-description">{t.taskDescription}</Label>
                           <Textarea
                             id="todo-description"
                             name="description"
-                            placeholder="Optional"
+                            placeholder={t.optional}
                             className="min-h-24 resize-y"
                           />
                         </div>
                         <SelectField
-                          label="Priorität"
+                          label={t.priority}
                           value={newTodoPriority}
                           onChange={value => setNewTodoPriority(value as Priority)}
                         >
@@ -1042,6 +1301,8 @@ export function TodoApp() {
                           <DueDateField
                             id="todo-due-at"
                             inline
+                            label={t.dueDate}
+                            noDueLabel={t.noDueDate}
                             dueAt={newTodoDueAt}
                             setDueAt={setNewTodoDueAt}
                             withoutDue={newTodoWithoutDue}
@@ -1049,18 +1310,18 @@ export function TodoApp() {
                           />
                         </div>
                         <label className="flex flex-col gap-1 text-xs font-medium text-slate-500 dark:text-slate-400 md:col-span-2">
-                          Tags
-                          <Input value={newTodoTags} onChange={event => setNewTodoTags(event.target.value)} placeholder="Arbeit, Idee" />
+                          {t.tags}
+                          <Input value={newTodoTags} onChange={event => setNewTodoTags(event.target.value)} placeholder={t.tagsPlaceholder} />
                         </label>
                       </div>
 
                       <div className="mt-5 flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
                         <Button type="button" variant="ghost" onClick={() => setNewTodoDialogOpen(false)}>
-                          Abbrechen
+                          {t.cancel}
                         </Button>
                         <Button type="submit" disabled={saving}>
                           <Plus />
-                          ToDo anlegen
+                          {t.createTodo}
                         </Button>
                       </div>
                     </form>
@@ -1069,56 +1330,56 @@ export function TodoApp() {
 
                 <div className="grid gap-3 rounded-md border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 xl:grid-cols-[1.5fr_repeat(5,minmax(120px,1fr))_auto] xl:items-end">
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                    Suche
+                    {t.search}
                     <span className="relative">
                       <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
                       <Input
                         ref={searchInputRef}
                         value={searchQuery}
                         onChange={event => setSearchQuery(event.target.value)}
-                        placeholder="Titel, Text, Tags"
+                        placeholder={t.searchPlaceholder}
                         className="pl-9"
                       />
                     </span>
                   </label>
-                  <SelectField label="Status" value={filterStatus} onChange={value => setFilterStatus(value as "all" | TodoStatus)}>
-                    <option value="all">Alle</option>
+                  <SelectField label={t.status} value={filterStatus} onChange={value => setFilterStatus(value as "all" | TodoStatus)}>
+                    <option value="all">{t.all}</option>
                     {lanes.map(lane => (
                       <option key={lane.status} value={lane.status}>
-                        {lane.title}
+                        {laneTitles[lane.status]}
                       </option>
                     ))}
                   </SelectField>
                   <SelectField
-                    label="Priorität"
+                    label={t.priority}
                     value={filterPriority}
                     onChange={value => setFilterPriority(value as "all" | Priority)}
                   >
-                    <option value="all">Alle</option>
+                    <option value="all">{t.all}</option>
                     {priorityOrder.map(priority => (
                       <option key={priority} value={priority}>
                         {priorityLabels[priority]}
                       </option>
                     ))}
                   </SelectField>
-                  <SelectField label="Fälligkeit" value={dueFilter} onChange={value => setDueFilter(value as DueFilter)}>
-                    <option value="all">Alle</option>
-                    <option value="today">Heute</option>
-                    <option value="overdue">Überfällig</option>
+                  <SelectField label={t.due} value={dueFilter} onChange={value => setDueFilter(value as DueFilter)}>
+                    <option value="all">{t.all}</option>
+                    <option value="today">{t.dueToday}</option>
+                    <option value="overdue">{t.overdue}</option>
                   </SelectField>
-                  <SelectField label="Tag" value={filterTag} onChange={setFilterTag}>
-                    <option value="all">Alle</option>
+                  <SelectField label={t.tags} value={filterTag} onChange={setFilterTag}>
+                    <option value="all">{t.all}</option>
                     {availableTags.map(tag => (
                       <option key={tag} value={tag}>
                         {tag}
                       </option>
                     ))}
                   </SelectField>
-                  <SelectField label="Sortierung" value={sortMode} onChange={value => setSortMode(value as SortMode)}>
-                    <option value="status">Status</option>
-                    <option value="priority">Priorität</option>
-                    <option value="due">Fällig</option>
-                    <option value="updated">Zuletzt geändert</option>
+                  <SelectField label={t.sort} value={sortMode} onChange={value => setSortMode(value as SortMode)}>
+                    <option value="status">{t.sortStatus}</option>
+                    <option value="priority">{t.sortPriority}</option>
+                    <option value="due">{t.sortDue}</option>
+                    <option value="updated">{t.sortUpdated}</option>
                   </SelectField>
                   <Button
                     type="button"
@@ -1131,7 +1392,7 @@ export function TodoApp() {
                     )}
                   >
                     <Archive />
-                    {showAllTodos ? "Alle" : "Aktiv"}
+                    {showAllTodos ? t.all : t.showActive}
                   </Button>
                 </div>
 
@@ -1164,7 +1425,7 @@ export function TodoApp() {
                         <div className="mb-3 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <LaneIcon className="size-4" />
-                            <h2 className="text-sm font-semibold">{lane.title}</h2>
+                            <h2 className="text-sm font-semibold">{laneTitles[lane.status]}</h2>
                           </div>
                           <span className="rounded-full bg-white/70 px-2 py-0.5 text-xs font-medium dark:bg-slate-950/40">
                             {laneTodos.length}
@@ -1174,7 +1435,7 @@ export function TodoApp() {
                         <div className="flex flex-1 flex-col gap-3">
                           {laneTodos.length === 0 ? (
                             <div className="flex flex-1 items-center justify-center rounded-md border border-dashed border-current/20 bg-white/35 p-6 text-center text-sm opacity-70 dark:bg-slate-950/20">
-                              Keine ToDos
+                              {t.emptyLane}
                             </div>
                           ) : null}
 
@@ -1182,6 +1443,8 @@ export function TodoApp() {
                             <TodoCard
                               key={todo.id}
                               todo={todo}
+                              language={language}
+                              t={t}
                               activeLists={lists}
                               saving={saving}
                               listReadOnly={isArchivedList}
@@ -1219,7 +1482,7 @@ export function TodoApp() {
               </>
             ) : (
               <div className="flex min-h-[420px] items-center justify-center rounded-md border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-                Lege eine Liste an, um dein erstes Kanban-Board zu starten.
+                {t.emptyLists}
               </div>
             )}
           </section>
@@ -1253,6 +1516,8 @@ function Metric({
 
 function TodoCard({
   todo,
+  language,
+  t,
   activeLists,
   saving,
   listReadOnly,
@@ -1270,6 +1535,8 @@ function TodoCard({
   onAddNote,
 }: {
   todo: Todo;
+  language: Language;
+  t: CopyText;
   activeLists: TodoList[];
   saving: boolean;
   listReadOnly: boolean;
@@ -1300,6 +1567,8 @@ function TodoCard({
   const isArchivedTodo = Boolean(todo.archivedAt);
   const readOnly = isArchivedTodo || listReadOnly;
   const targetLists = activeLists.filter(list => list.id !== todo.listId);
+  const priorityLabels = t.priorityLabels;
+  const actionLabels = t.actionLabels;
 
   useEffect(() => {
     if (editing) {
@@ -1369,7 +1638,7 @@ function TodoCard({
             <Input value={title} onChange={event => setTitle(event.target.value)} />
             <Textarea value={description} onChange={event => setDescription(event.target.value)} className="min-h-20" />
             <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_96px]">
-              <SelectField label="Priorität" value={priority} onChange={value => setPriority(value as Priority)}>
+              <SelectField label={t.priority} value={priority} onChange={value => setPriority(value as Priority)}>
                 {priorityOrder.map(priorityOption => (
                   <option key={priorityOption} value={priorityOption}>
                     {priorityLabels[priorityOption]}
@@ -1385,6 +1654,8 @@ function TodoCard({
               </SelectField>
               <DueDateField
                 id={`todo-${todo.id}-due-at`}
+                label={t.dueDate}
+                noDueLabel={t.noDueDate}
                 dueAt={dueAt}
                 setDueAt={setDueAt}
                 withoutDue={withoutDue}
@@ -1392,15 +1663,15 @@ function TodoCard({
               />
             </div>
             <label className="flex flex-col gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-              Tags
+              {t.tags}
               <Input value={tagsValue} onChange={event => setTagsValue(event.target.value)} />
             </label>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="ghost" size="sm" onClick={onCancelEdit}>
-                Abbrechen
+                {t.cancel}
               </Button>
               <Button type="submit" size="sm" disabled={saving || !title.trim()}>
-                Speichern
+                {t.save}
               </Button>
             </div>
           </form>
@@ -1414,7 +1685,7 @@ function TodoCard({
                 <div className="flex shrink-0 flex-wrap justify-end gap-1">
                   {isArchivedTodo ? (
                     <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                      Archiviert
+                      {t.archived}
                     </span>
                   ) : null}
                   <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-200">
@@ -1442,7 +1713,7 @@ function TodoCard({
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               <span className={cn("inline-flex items-center gap-1", isOverdue(todo) && "font-medium text-red-700")}>
                 <CalendarDays className="size-3.5" />
-                {shortDate(todo.dueAt)}
+                {shortDate(todo.dueAt, language, t.noDate)}
               </span>
               {todo.tags.map(tag => (
                 <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
@@ -1454,13 +1725,13 @@ function TodoCard({
 
             <div className="rounded-md border border-slate-100 bg-slate-50/80 p-2 dark:border-slate-800 dark:bg-slate-950/40">
               <div className="mb-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                <span>Checkliste</span>
+                <span>{t.checklist}</span>
                 <span>
                   {doneSubtasks}/{todo.subtasks.length}
                 </span>
               </div>
               <div className="flex flex-col gap-1">
-                {todo.subtasks.length === 0 ? <p className="text-xs text-slate-400 dark:text-slate-500">Noch keine Teilschritte.</p> : null}
+                {todo.subtasks.length === 0 ? <p className="text-xs text-slate-400 dark:text-slate-500">{t.noSubtasks}</p> : null}
                 {todo.subtasks.map(subtask => (
                   <label key={subtask.id} className="flex items-center justify-between gap-2 text-sm text-slate-700 dark:text-slate-200">
                     <span className="flex min-w-0 items-center gap-2">
@@ -1477,7 +1748,7 @@ function TodoCard({
                       onClick={() => onDeleteSubtask(subtask.id)}
                       disabled={saving || readOnly}
                       className="text-slate-400 hover:text-red-600 disabled:opacity-50 dark:text-slate-500 dark:hover:text-red-300"
-                      aria-label="Teilschritt löschen"
+                      aria-label={t.deleteSubtask}
                     >
                       <Trash2 className="size-3.5" />
                     </button>
@@ -1489,7 +1760,7 @@ function TodoCard({
                   <Input
                     value={subtaskTitle}
                     onChange={event => setSubtaskTitle(event.target.value)}
-                    placeholder="Teilschritt"
+                    placeholder={t.subtask}
                     className="h-8"
                   />
                   <Button type="submit" size="icon-sm" variant="outline" disabled={saving || !subtaskTitle.trim()}>
@@ -1500,9 +1771,9 @@ function TodoCard({
             </div>
 
             <div className="rounded-md border border-slate-100 bg-white p-2 dark:border-slate-800 dark:bg-slate-950/30">
-              <div className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">Aktivität</div>
+              <div className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">{t.activity}</div>
               <div className="activity-scroll flex max-h-[3.75rem] flex-col gap-1 overflow-y-scroll pr-2">
-                {todo.activity.length === 0 ? <p className="text-xs text-slate-400 dark:text-slate-500">Noch keine Einträge.</p> : null}
+                {todo.activity.length === 0 ? <p className="text-xs text-slate-400 dark:text-slate-500">{t.noEntries}</p> : null}
                 {todo.activity.map(item => (
                   <p key={item.id} className="text-xs text-slate-500 dark:text-slate-400">
                     <span className="font-medium text-slate-700 dark:text-slate-200">{actionLabels[item.action] ?? item.action}</span>
@@ -1512,7 +1783,7 @@ function TodoCard({
               </div>
               {!readOnly ? (
                 <form onSubmit={submitNote} className="mt-2 flex gap-2">
-                  <Input value={note} onChange={event => setNote(event.target.value)} placeholder="Notiz" className="h-8" />
+                  <Input value={note} onChange={event => setNote(event.target.value)} placeholder={t.note} className="h-8" />
                   <Button type="submit" size="icon-sm" variant="outline" disabled={saving || !note.trim()}>
                     <Plus />
                   </Button>
@@ -1532,8 +1803,8 @@ function TodoCard({
                   size="icon-sm"
                   onClick={() => onMove(-1)}
                   disabled={saving || todo.status === "new"}
-                  aria-label="Nach links verschieben"
-                  title="Nach links verschieben"
+                  aria-label={t.moveLeft}
+                  title={t.moveLeft}
                 >
                   <ChevronLeft />
                 </Button>
@@ -1543,8 +1814,8 @@ function TodoCard({
                   size="icon-sm"
                   onClick={() => onMove(1)}
                   disabled={saving || todo.status === "done"}
-                  aria-label="Nach rechts verschieben"
-                  title="Nach rechts verschieben"
+                  aria-label={t.moveRight}
+                  title={t.moveRight}
                 >
                   <ChevronRight />
                 </Button>
@@ -1555,7 +1826,7 @@ function TodoCard({
             {!readOnly && targetLists.length > 0 ? (
               <div className="flex items-center gap-1">
                 <Label htmlFor={`todo-${todo.id}-move-list`} className="sr-only">
-                  In Liste verschieben
+                  {t.moveToList}
                 </Label>
                 <select
                   id={`todo-${todo.id}-move-list`}
@@ -1571,9 +1842,9 @@ function TodoCard({
                   }}
                   disabled={saving}
                   className="h-8 max-w-32 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700 shadow-xs outline-none focus-visible:border-slate-950 focus-visible:ring-2 focus-visible:ring-slate-950/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-                  title="In Liste verschieben"
+                  title={t.moveToList}
                 >
-                  <option value="">Verschieben</option>
+                  <option value="">{t.movePlaceholder}</option>
                   {targetLists.map(list => (
                     <option key={list.id} value={list.id}>
                       {list.name}
@@ -1589,8 +1860,8 @@ function TodoCard({
                 size="icon-sm"
                 onClick={onEdit}
                 disabled={saving || editing}
-                aria-label="ToDo bearbeiten"
-                title="ToDo bearbeiten"
+                aria-label={t.editTodo}
+                title={t.editTodo}
               >
                 <Edit3 />
               </Button>
@@ -1602,8 +1873,8 @@ function TodoCard({
                 size="icon-sm"
                 onClick={() => onArchive(false)}
                 disabled={saving}
-                aria-label="ToDo wiederherstellen"
-                title="ToDo wiederherstellen"
+                aria-label={t.restoreTodo}
+                title={t.restoreTodo}
               >
                 <RotateCcw />
               </Button>
@@ -1615,8 +1886,8 @@ function TodoCard({
                 size="icon-sm"
                 onClick={() => onArchive(true)}
                 disabled={saving}
-                aria-label="ToDo archivieren"
-                title="ToDo archivieren"
+                aria-label={t.archiveTodo}
+                title={t.archiveTodo}
               >
                 <Archive />
               </Button>
